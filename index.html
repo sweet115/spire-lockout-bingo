@@ -16,20 +16,286 @@
 </main>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
-/* SETUP: Create a Firebase project, add a Web app, enable Authentication > Anonymous, and create Realtime Database. Paste the web config below. Configure database rules before sharing this page. */
-const firebaseConfig={apiKey:"AIzaSyDXnyQK64stCrxOfV9wJq84PTkLgkBjQnY",authDomain:"spire-lockout-bingo.firebaseapp.com",databaseURL:"https://spire-lockout-bingo-default-rtdb.firebaseio.com/",projectId:"spire-lockout-bingo",appId:"1:774789225766:web:b49660ec4998f28c0bf5e7"};
-// Starter challenge list. Replace/edit these with the exact list from your previous bingo design.
-const CHALLENGES=["Deal 4 types of damage","Gain 30 Block in one turn","Defeat the Act 2 boss","Deal 50 damage with one card","Win a fight without losing HP","Spend 400 gold in one shop","Defeat an Elite","Play 3 cards in one turn","Apply Vulnerable and Weak in one fight","Finish a fight with 1 HP","Obtain a rare card","Upgrade 3 cards","Win a fight without playing an Attack","Have 100 or more gold after a shop","Use a potion in a boss fight","Play 10 cards in one turn","Deal 100 damage in one turn","Gain 50 Block in one turn","Defeat an enemy with a Power","Remove a card at a shop","Win a fight with no Block gained","Have 3 or more Powers active","Use 2 potions in one combat","Defeat an Elite without using a potion","Reach the Act 2 boss"];
-const $=id=>document.getElementById(id);let auth,db,user=null,roomRef=null,roomCode=null,roomData=null,roomListener=null,mySlot=null,busy=false;
-function setStatus(id,msg,type=""){const e=$(id);e.textContent=msg;e.className="status "+type}function configReady(){return firebaseConfig.apiKey!=="AIzaSyDXnyQK64stCrxOfV9wJq84PTkLgkBjQnY"&&firebaseConfig.databaseURL!=="https://spire-lockout-bingo-default-rtdb.firebaseio.com/"&&firebaseConfig.projectId!=="spire-lockout-bingo"}function randomCode(){const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";let s="";for(let i=0;i<6;i++)s+=chars[Math.floor(Math.random()*chars.length)];return s}function cleanName(){return $("playerName").value.trim().slice(0,20)||"Player"}
-function shuffledChallenges(){const a=[...CHALLENGES];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a.map(text=>({text,owner:null,claimedBy:null}))}
-async function connectFirebase(){if(!configReady())throw Error("First paste your Firebase web-app config into the firebaseConfig section of this file.");if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);auth=firebase.auth();db=firebase.database();user=(await auth.signInAnonymously()).user}
-async function createRoom(){if(busy)return;busy=true;$("createBtn").disabled=true;try{await connectFirebase();let code,ref,snap;do{code=randomCode();ref=db.ref("rooms/"+code);snap=await ref.get()}while(snap.exists());await ref.set({createdAt:firebase.database.ServerValue.TIMESTAMP,players:{[user.uid]:{name:cleanName(),slot:1}},board:shuffledChallenges(),winner:null});enterRoom(code,1)}catch(e){setStatus("setupStatus",e.message,"error")}finally{busy=false;$("createBtn").disabled=false}}
-async function joinRoom(){if(busy)return;busy=true;$("joinBtn").disabled=true;try{await connectFirebase();const code=$("roomInput").value.trim().toUpperCase();if(!/^[A-Z0-9]{6}$/.test(code))throw Error("Enter the six-character room code.");const ref=db.ref("rooms/"+code);const result=await ref.transaction(cur=>{if(!cur||!cur.players)return;if(cur.players[user.uid])return cur;const ps=Object.values(cur.players);if(ps.length>=2)return;const slot=ps.some(p=>p.slot===1)?2:1;cur.players[user.uid]={name:cleanName(),slot};return cur},undefined,false);if(!result.committed)throw Error("Room not found or already has two players.");enterRoom(code,result.snapshot.val().players[user.uid].slot)}catch(e){setStatus("setupStatus",e.message,"error")}finally{busy=false;$("joinBtn").disabled=false}}
-function enterRoom(code,slot){if(roomListener&&roomRef)roomRef.off("value",roomListener);roomCode=code;mySlot=slot;roomRef=db.ref("rooms/"+code);$("setup").classList.add("hidden");$("game").classList.remove("hidden");$("roomCode").textContent=code;roomListener=s=>{if(!s.exists()){setStatus("gameStatus","This room no longer exists.","error");return}roomData=s.val();$("connection").textContent="Live · Room "+code;render()};roomRef.on("value",roomListener,e=>setStatus("gameStatus","Database error: "+e.message,"error"))}
-function getPlayers(){return Object.entries(roomData?.players||{}).map(([uid,p])=>({uid,...p})).sort((a,b)=>a.slot-b.slot)}
-function winningLine(board,slot){const lines=[];for(let r=0;r<5;r++)lines.push([0,1,2,3,4].map(c=>r*5+c));for(let c=0;c<5;c++)lines.push([0,1,2,3,4].map(r=>r*5+c));lines.push([0,6,12,18,24],[4,8,12,16,20]);return lines.find(line=>line.every(i=>board[i]?.owner===slot))||null}
-function render(){const ps=getPlayers(),p1=ps.find(p=>p.slot===1),p2=ps.find(p=>p.slot===2);$("name1").textContent=p1?.name||"Player 1";$("name2").textContent=p2?.name||"Player 2";$("ready1").textContent=p1?(p1.uid===user.uid?"You":"Connected"):"Waiting for player";$("ready2").textContent=p2?(p2.uid===user.uid?"You":"Connected"):"Waiting for player";const board=roomData.board||[];let r=0,b=0;board.forEach(s=>{if(s.owner===1)r++;if(s.owner===2)b++});$("score").textContent=`Red ${r} · Blue ${b}`;const el=$("board");el.innerHTML="";board.forEach((sq,i)=>{const btn=document.createElement("button");btn.className="square "+(sq.owner===1?"mine1 taken":sq.owner===2?"mine2 taken":"free");btn.disabled=!!sq.owner||!!roomData.winner||ps.length<2;const n=document.createElement("span");n.className="num";n.textContent=String(i+1).padStart(2,"0");const t=document.createElement("span");t.textContent=sq.text||"Challenge";const c=document.createElement("span");c.className="claim";c.textContent=sq.owner?(sq.owner===1?`${p1?.name||"Player 1"} claimed`:`${p2?.name||"Player 2"} claimed`):"Open";btn.append(n,t,c);btn.addEventListener("click",()=>claimSquare(i));el.appendChild(btn)});if(roomData.winner)setStatus("gameStatus",`${roomData.winner.name} wins with line ${roomData.winner.line}!`,"success");else if(ps.length<2)setStatus("gameStatus","Waiting for your friend to join. Share the room code above.");else setStatus("gameStatus",`You're Player ${mySlot===1?"1 (red)":"2 (blue)"}. First to complete a line wins.`)}
-async function claimSquare(i){if(!roomRef||!roomData||roomData.winner||busy||getPlayers().length<2)return;busy=true;try{const result=await roomRef.child("board/"+i).transaction(cur=>{if(!cur||cur.owner!==null)return;return {...cur,owner:mySlot,claimedBy:user.uid}},undefined,false);if(!result.committed)return;const latest=(await roomRef.child("board").get()).val()||[];const line=winningLine(latest,mySlot);if(line)await roomRef.child("winner").transaction(cur=>cur||{slot:mySlot,uid:user.uid,name:cleanName(),line:line.map(n=>n+1).join(", ")},undefined,false)}catch(e){setStatus("gameStatus","Couldn't claim square: "+e.message,"error")}finally{busy=false}}
-$("createBtn").addEventListener("click",createRoom);$("joinBtn").addEventListener("click",joinRoom);$("roomInput").addEventListener("input",e=>e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6));$("copyBtn").addEventListener("click",async()=>{const text=`Join my Spire Lockout Bingo match! Room code: ${roomCode}`;try{await navigator.clipboard.writeText(text);setStatus("gameStatus","Invite details copied.","success")}catch{setStatus("gameStatus",text)}});$("leaveBtn").addEventListener("click",()=>{if(roomListener&&roomRef)roomRef.off("value",roomListener);roomRef=null;roomListener=null;roomCode=null;roomData=null;mySlot=null;$("game").classList.add("hidden");$("setup").classList.remove("hidden");$("connection").textContent="Not connected";setStatus("setupStatus","You left the room.")});
-</script></body></html>
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDXnyQK64stCrxOfV9wJq84PTkLgkBjQnY",
+  authDomain: "spire-lockout-bingo.firebaseapp.com",
+  databaseURL: "https://spire-lockout-bingo-default-rtdb.firebaseio.com",
+  projectId: "spire-lockout-bingo",
+  appId: "1:774789225766:web:b49660ec4998f28c0bf5e7"
+};
+
+const CHALLENGES = [
+  "Deal 4 types of damage","Gain 30 Block in one turn","Defeat the Act 2 boss",
+  "Deal 50 damage with one card","Win a fight without losing HP",
+  "Spend 400 gold in one shop","Defeat an Elite","Play 3 cards in one turn",
+  "Apply Vulnerable and Weak in one fight","Finish a fight with 1 HP",
+  "Obtain a rare card","Upgrade 3 cards","Win a fight without playing an Attack",
+  "Have 100 or more gold after a shop","Use a potion in a boss fight",
+  "Play 10 cards in one turn","Deal 100 damage in one turn","Gain 50 Block in one turn",
+  "Defeat an enemy with a Power","Remove a card at a shop",
+  "Win a fight with no Block gained","Have 3 or more Powers active",
+  "Use 2 potions in one combat","Defeat an Elite without using a potion",
+  "Reach the Act 2 boss"
+];
+
+const $ = id => document.getElementById(id);
+let db, user, roomRef, roomCode, roomData, roomListener, mySlot, busy = false;
+
+function setStatus(id, msg, type = "") {
+  const el = $(id);
+  el.textContent = msg;
+  el.className = "status " + type;
+}
+
+function randomCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({length: 6}, () =>
+    chars[Math.floor(Math.random() * chars.length)]
+  ).join("");
+}
+
+function cleanName() {
+  return $("playerName").value.trim().slice(0, 20) || "Player";
+}
+
+function shuffledChallenges() {
+  const a = [...CHALLENGES];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.map(text => ({text}));
+}
+
+async function connectFirebase() {
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const credential = await firebase.auth().signInAnonymously();
+  user = credential.user;
+  db = firebase.database();
+}
+
+async function createRoom() {
+  if (busy) return;
+  busy = true;
+  $("createBtn").disabled = true;
+
+  try {
+    await connectFirebase();
+    const code = randomCode();
+    const ref = db.ref("rooms/" + code);
+
+    await ref.set({
+      creatorUid: user.uid,
+      createdAt: firebase.database.ServerValue.TIMESTAMP,
+      players: {
+        "1": {uid: user.uid, name: cleanName(), slot: 1}
+      },
+      board: shuffledChallenges()
+    });
+
+    enterRoom(code, 1);
+  } catch (e) {
+    setStatus("setupStatus", "Couldn't create room: " + e.message, "error");
+  } finally {
+    busy = false;
+    $("createBtn").disabled = false;
+  }
+}
+
+async function joinRoom() {
+  if (busy) return;
+  busy = true;
+  $("joinBtn").disabled = true;
+
+  try {
+    await connectFirebase();
+    const code = $("roomInput").value.trim().toUpperCase();
+    if (!/^[A-Z0-9]{6}$/.test(code)) {
+      throw Error("Enter the six-character room code.");
+    }
+
+    const ref = db.ref("rooms/" + code);
+    const slot2 = ref.child("players/2");
+    const existing = await slot2.get();
+
+    if (existing.exists()) {
+      if (existing.val().uid === user.uid) {
+        enterRoom(code, 2);
+        return;
+      }
+      throw Error("This room already has two players.");
+    }
+
+    const result = await slot2.transaction(current => {
+      if (current !== null) return;
+      return {uid: user.uid, name: cleanName(), slot: 2};
+    }, undefined, false);
+
+    if (!result.committed || result.snapshot.val()?.uid !== user.uid) {
+      throw Error("Couldn't join. Check the room code or try another room.");
+    }
+
+    enterRoom(code, 2);
+  } catch (e) {
+    setStatus("setupStatus", "Couldn't join room: " + e.message, "error");
+  } finally {
+    busy = false;
+    $("joinBtn").disabled = false;
+  }
+}
+
+function enterRoom(code, slot) {
+  if (roomListener && roomRef) roomRef.off("value", roomListener);
+
+  roomCode = code;
+  mySlot = slot;
+  roomRef = db.ref("rooms/" + code);
+  $("setup").classList.add("hidden");
+  $("game").classList.remove("hidden");
+  $("roomCode").textContent = code;
+
+  roomListener = snap => {
+    if (!snap.exists()) {
+      setStatus("gameStatus", "This room no longer exists.", "error");
+      return;
+    }
+    roomData = snap.val();
+    $("connection").textContent = "Live · Room " + code;
+    render();
+  };
+
+  roomRef.on("value", roomListener, e =>
+    setStatus("gameStatus", "Database error: " + e.message, "error")
+  );
+}
+
+function getPlayers() {
+  return Object.values(roomData?.players || {})
+    .filter(Boolean)
+    .sort((a, b) => a.slot - b.slot);
+}
+
+function winningLine(board, slot) {
+  const lines = [];
+  for (let r = 0; r < 5; r++) lines.push([0,1,2,3,4].map(c => r * 5 + c));
+  for (let c = 0; c < 5; c++) lines.push([0,1,2,3,4].map(r => r * 5 + c));
+  lines.push([0,6,12,18,24], [4,8,12,16,20]);
+  return lines.find(line => line.every(i => board[i]?.owner === slot)) || null;
+}
+
+function getWinner() {
+  const board = roomData?.board || [];
+  for (const slot of [1, 2]) {
+    const line = winningLine(board, slot);
+    if (line) return {slot, line};
+  }
+  return null;
+}
+
+function render() {
+  const players = getPlayers();
+  const p1 = players.find(p => p.slot === 1);
+  const p2 = players.find(p => p.slot === 2);
+  const board = roomData.board || [];
+  const winner = getWinner();
+
+  $("name1").textContent = p1?.name || "Player 1";
+  $("name2").textContent = p2?.name || "Player 2";
+  $("ready1").textContent = p1 ? (p1.uid === user.uid ? "You" : "Connected") : "Waiting for player";
+  $("ready2").textContent = p2 ? (p2.uid === user.uid ? "You" : "Connected") : "Waiting for player";
+
+  let red = 0, blue = 0;
+  board.forEach(s => {
+    if (s.owner === 1) red++;
+    if (s.owner === 2) blue++;
+  });
+  $("score").textContent = `Red ${red} · Blue ${blue}`;
+
+  const el = $("board");
+  el.innerHTML = "";
+
+  board.forEach((sq, i) => {
+    const btn = document.createElement("button");
+    btn.className = "square " +
+      (sq.owner === 1 ? "mine1 taken" : sq.owner === 2 ? "mine2 taken" : "free");
+    btn.disabled = !!sq.owner || !!winner || players.length < 2;
+
+    const n = document.createElement("span");
+    n.className = "num";
+    n.textContent = String(i + 1).padStart(2, "0");
+
+    const t = document.createElement("span");
+    t.textContent = sq.text || "Challenge";
+
+    const c = document.createElement("span");
+    c.className = "claim";
+    c.textContent = sq.owner
+      ? `${(sq.owner === 1 ? p1?.name : p2?.name) || "Player"} claimed`
+      : "Open";
+
+    btn.append(n, t, c);
+    btn.addEventListener("click", () => claimSquare(i));
+    el.appendChild(btn);
+  });
+
+  if (winner) {
+    const name = winner.slot === 1 ? (p1?.name || "Player 1") : (p2?.name || "Player 2");
+    setStatus("gameStatus",
+      `${name} wins with line ${winner.line.map(n => n + 1).join(", ")}!`,
+      "success"
+    );
+  } else if (players.length < 2) {
+    setStatus("gameStatus", "Waiting for your friend to join. Share the room code above.");
+  } else {
+    setStatus("gameStatus",
+      `You're Player ${mySlot} (${mySlot === 1 ? "red" : "blue"}). First to complete a line wins.`
+    );
+  }
+}
+
+async function claimSquare(i) {
+  if (!roomRef || !roomData || getWinner() || busy || getPlayers().length < 2) return;
+
+  busy = true;
+  try {
+    const result = await roomRef.child("board/" + i).transaction(current => {
+      if (!current || current.owner != null) return;
+      return {...current, owner: mySlot, claimedBy: user.uid};
+    }, undefined, false);
+
+    if (!result.committed) {
+      setStatus("gameStatus", "That square was already claimed. Choose another.");
+    }
+  } catch (e) {
+    setStatus("gameStatus", "Couldn't claim square: " + e.message, "error");
+  } finally {
+    busy = false;
+  }
+}
+
+$("createBtn").addEventListener("click", createRoom);
+$("joinBtn").addEventListener("click", joinRoom);
+$("roomInput").addEventListener("input", e => {
+  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+});
+
+$("copyBtn").addEventListener("click", async () => {
+  const invite = `Join my Spire Lockout Bingo match! Room code: ${roomCode}`;
+  try {
+    await navigator.clipboard.writeText(invite);
+    setStatus("gameStatus", "Invite details copied.", "success");
+  } catch {
+    setStatus("gameStatus", invite);
+  }
+});
+
+$("leaveBtn").addEventListener("click", () => {
+  if (roomListener && roomRef) roomRef.off("value", roomListener);
+  roomRef = roomListener = roomCode = roomData = mySlot = null;
+  $("game").classList.add("hidden");
+  $("setup").classList.remove("hidden");
+  $("connection").textContent = "Not connected";
+  setStatus("setupStatus", "You left the room.");
+});
