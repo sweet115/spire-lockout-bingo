@@ -1,25 +1,420 @@
+
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Spire Lockout Bingo</title>
+
 <style>
-:root{color-scheme:dark;--bg:#111216;--panel:#1b1c23;--line:#393b47;--text:#f4f1e9;--muted:#aaaab5;--gold:#e4b65c;--red:#d75b5b;--blue:#65a9e8;--green:#72c49a}*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#29232a 0,#111216 55%);color:var(--text);font:15px/1.45 system-ui,sans-serif;min-height:100vh}main{max-width:1120px;margin:auto;padding:24px 16px 48px}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}h1{font-size:clamp(24px,4vw,38px);letter-spacing:.07em;margin:0;color:var(--gold)}h2{font-size:18px;margin:0 0 12px}.subtitle{color:var(--muted);margin-top:4px}.pill{border:1px solid var(--line);background:#17181e;padding:8px 12px;border-radius:999px;color:var(--muted);font-size:13px}.panel{background:rgba(27,28,35,.94);border:1px solid var(--line);border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 12px 32px #0002}label{display:block;color:var(--muted);font-size:13px;margin-bottom:5px}input,button{font:inherit;border-radius:9px;border:1px solid var(--line);padding:10px 12px;background:#111218;color:var(--text)}input{width:100%;min-width:0}button{cursor:pointer;background:#35303a;border-color:#65513b;font-weight:650}button:hover{filter:brightness(1.14)}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:#8e6128;border-color:#d7a24c;color:#fff}.row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}.field{flex:1;min-width:170px}.hidden{display:none!important}.players{display:grid;grid-template-columns:1fr 1fr;gap:12px}.player{padding:12px;border-radius:12px;background:#242630;border:1px solid var(--line)}.player strong{display:block}.player small{color:var(--muted)}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}.p1{color:var(--red)}.p2{color:var(--blue)}.board-wrap{overflow-x:auto}.board{display:grid;grid-template-columns:repeat(5,minmax(100px,1fr));gap:8px;min-width:560px}.square{min-height:118px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;padding:11px;background:linear-gradient(145deg,#292a32,#1b1c22);border:1px solid #48434a;border-radius:10px;white-space:normal;font-weight:500;line-height:1.3}.square .num{font-size:11px;color:var(--muted);letter-spacing:.08em}.square .claim{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-top:10px}.square.mine1{background:linear-gradient(145deg,#552d35,#291e26);border:2px solid var(--red)}.square.mine2{background:linear-gradient(145deg,#233f58,#1a2530);border:2px solid var(--blue)}.square.taken{cursor:not-allowed;opacity:.9}.square.free:hover{border-color:var(--gold);transform:translateY(-1px)}.status{color:var(--muted);font-size:13px;min-height:20px}.error{color:#ff8e8e}.success{color:var(--green)}.rules{color:var(--muted);font-size:13px}.footer{color:var(--muted);font-size:12px;margin-top:18px}@media(max-width:650px){main{padding:16px 10px 32px}.panel{padding:13px}.board{gap:5px;min-width:520px}.square{min-height:108px;padding:8px;font-size:13px}.players{gap:7px}}
-</style></head>
-<body><main>
-<header class="top"><div><h1>SPIRE LOCKOUT BINGO</h1><div class="subtitle">Two players. One board. First claim wins.</div></div><div class="pill" id="connection">Not connected</div></header>
-<section class="panel" id="setup"><h2>Create a match or join a friend</h2><div class="row"><div class="field"><label for="playerName">Your display name</label><input id="playerName" maxlength="20" placeholder="e.g. IroncladEnjoyer"></div><button class="primary" id="createBtn">Create room</button></div><div style="height:12px"></div><div class="row"><div class="field"><label for="roomInput">Room code from your friend</label><input id="roomInput" maxlength="6" placeholder="ABC123" autocapitalize="characters"></div><button id="joinBtn">Join room</button></div><p class="rules">Both players should use the same room code. Keep it private with your friend.</p><div class="status" id="setupStatus"></div></section>
-<section id="game" class="hidden"><section class="panel"><div class="row" style="align-items:center;justify-content:space-between"><div><div class="subtitle">ROOM CODE</div><div id="roomCode" style="font-size:26px;letter-spacing:.16em;font-weight:800;color:var(--gold)">------</div></div><div class="row"><button id="copyBtn">Copy invite details</button><button id="leaveBtn">Leave room</button></div></div><div class="status" id="gameStatus" aria-live="polite"></div></section>
-<section class="panel"><div class="players"><div class="player"><strong class="p1"><span class="dot" style="background:var(--red)"></span><span id="name1">Player 1</span></strong><small id="ready1">Waiting for player</small></div><div class="player"><strong class="p2"><span class="dot" style="background:var(--blue)"></span><span id="name2">Player 2</span></strong><small id="ready2">Waiting for player</small></div></div><p class="rules">Click an unclaimed square to claim it. Claimed squares belong to that player and cannot be taken by the other player. A completed line wins.</p></section>
-<section class="panel"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:14px"><h2 style="margin:0">Challenge board</h2><div class="pill" id="score">Red 0 · Blue 0</div></div><div class="board-wrap"><div class="board" id="board"></div></div></section></section>
-<div class="footer">Firebase must be configured below before online multiplayer works. This prototype uses anonymous sign-in and client-side game logic. Use a private room code with your friend; for public competitive play, add stronger server-side validation.</div>
+:root {
+  color-scheme: dark;
+  --bg: #111216;
+  --panel: #1b1c23;
+  --line: #393b47;
+  --text: #f4f1e9;
+  --muted: #aaaab5;
+  --gold: #e4b65c;
+  --red: #d75b5b;
+  --blue: #65a9e8;
+  --green: #72c49a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: radial-gradient(ellipse at top, #29232a 0, #111216 55%);
+  color: var(--text);
+  font: 15px/1.45 system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+main {
+  max-width: 1120px;
+  margin: auto;
+  padding: 24px 16px 48px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+h1 {
+  font-size: clamp(24px, 4vw, 38px);
+  letter-spacing: .07em;
+  margin: 0;
+  color: var(--gold);
+}
+
+h2 { font-size: 18px; margin: 0 0 12px; }
+
+.subtitle { color: var(--muted); margin-top: 4px; }
+
+.pill {
+  border: 1px solid var(--line);
+  background: #17181e;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.panel {
+  background: rgba(27,28,35,.94);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  margin: 14px 0;
+  box-shadow: 0 12px 32px #0002;
+}
+
+label {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+
+input, select, button {
+  font: inherit;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  background: #111218;
+  color: var(--text);
+}
+
+input, select { width: 100%; min-width: 0; }
+
+button {
+  cursor: pointer;
+  background: #35303a;
+  border-color: #65513b;
+  font-weight: 650;
+}
+
+button:hover { filter: brightness(1.14); }
+
+button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.primary {
+  background: #8e6128;
+  border-color: #d7a24c;
+  color: #fff;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.field { flex: 1; min-width: 170px; }
+
+.hidden { display: none !important; }
+
+.players {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.player {
+  padding: 12px;
+  border-radius: 12px;
+  background: #242630;
+  border: 1px solid var(--line);
+}
+
+.player strong { display: block; }
+.player small { color: var(--muted); }
+
+.dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 7px;
+}
+
+.p1 { color: var(--red); }
+.p2 { color: var(--blue); }
+
+.board-wrap {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.board {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.square {
+  min-width: 0;
+  min-height: 118px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: left;
+  padding: 11px;
+  background: linear-gradient(145deg, #292a32, #1b1c22);
+  border: 1px solid #48434a;
+  border-radius: 10px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.square .num {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: .08em;
+}
+
+.square .claim {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-top: 10px;
+}
+
+.square.mine1 {
+  background: linear-gradient(145deg, #552d35, #291e26);
+  border: 2px solid var(--red);
+}
+
+.square.mine2 {
+  background: linear-gradient(145deg, #233f58, #1a2530);
+  border: 2px solid var(--blue);
+}
+
+.square.taken { cursor: not-allowed; opacity: .9; }
+
+.square.free:hover {
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+
+.status {
+  color: var(--muted);
+  font-size: 13px;
+  min-height: 20px;
+}
+
+.error { color: #ff8e8e; }
+.success { color: var(--green); }
+
+.rules {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.warning {
+  background: #3a2d1c;
+  border: 1px solid #99733c;
+  color: #f4d59a;
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.custom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.footer {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 18px;
+}
+
+@media(max-width:650px) {
+  main { padding: 16px 10px 32px; }
+  .panel { padding: 13px; }
+  .board { gap: 5px; }
+  .square {
+    min-height: 108px;
+    padding: 8px;
+    font-size: 13px;
+  }
+  .players { gap: 7px; }
+}
+</style>
+</head>
+
+<body>
+<main>
+
+<header class="top">
+  <div>
+    <h1>SPIRE LOCKOUT BINGO</h1>
+    <div class="subtitle">Two players. One board. First claim wins.</div>
+  </div>
+  <div class="pill" id="connection">Not connected</div>
+</header>
+
+<section class="panel" id="setup">
+  <h2>Create a match or join a friend</h2>
+
+  <div class="row">
+    <div class="field">
+      <label for="playerName">Your display name</label>
+      <input id="playerName" maxlength="20"
+        placeholder="e.g. IroncladEnjoyer">
+    </div>
+    <button class="primary" id="createBtn">Create room</button>
+  </div>
+
+  <div style="height:18px"></div>
+
+  <h2>Board settings</h2>
+
+  <div class="field">
+    <label for="boardSize">Choose your bingo grid size</label>
+    <select id="boardSize">
+      <option value="3">3 × 3 — 9 challenges</option>
+      <option value="4">4 × 4 — 16 challenges</option>
+      <option value="5" selected>5 × 5 — 25 challenges</option>
+      <option value="custom">Custom size</option>
+    </select>
+  </div>
+
+  <div id="customSettings" class="hidden">
+    <div class="warning">
+      <strong>Custom board warning!</strong><br>
+      Make sure your challenge list contains enough unique prompts
+      for every square. The current list has
+      <strong id="availablePrompts">25</strong> unique challenges.
+      If you choose more squares than available prompts, you must
+      add more challenges before creating the room.
+    </div>
+
+    <div class="custom-grid">
+      <div>
+        <label for="customRows">Number of rows</label>
+        <input id="customRows" type="number" min="2" max="25" value="3">
+      </div>
+      <div>
+        <label for="customCols">Number of columns</label>
+        <input id="customCols" type="number" min="2" max="25" value="3">
+      </div>
+    </div>
+
+    <p class="rules" id="customCount">Your board will contain 9 squares.</p>
+  </div>
+
+  <p class="rules">
+    Only the host chooses the board size. Your friend automatically
+    receives the same board when joining your room.
+  </p>
+
+  <div style="height:12px"></div>
+
+  <div class="row">
+    <div class="field">
+      <label for="roomInput">Room code from your friend</label>
+      <input id="roomInput" maxlength="6" placeholder="ABC123"
+        autocapitalize="characters">
+    </div>
+    <button id="joinBtn">Join room</button>
+  </div>
+
+  <p class="rules">
+    Both players should use the same room code. Keep it private with your friend.
+  </p>
+
+  <div class="status" id="setupStatus"></div>
+</section>
+
+<section id="game" class="hidden">
+  <section class="panel">
+    <div class="row" style="align-items:center;justify-content:space-between">
+      <div>
+        <div class="subtitle">ROOM CODE</div>
+        <div id="roomCode"
+          style="font-size:26px;letter-spacing:.16em;font-weight:800;color:var(--gold)">
+          ------
+        </div>
+        <div class="subtitle" id="boardDescription"></div>
+      </div>
+      <div class="row">
+        <button id="copyBtn">Copy invite details</button>
+        <button id="leaveBtn">Leave room</button>
+      </div>
+    </div>
+    <div class="status" id="gameStatus" aria-live="polite"></div>
+  </section>
+
+  <section class="panel">
+    <div class="players">
+      <div class="player">
+        <strong class="p1">
+          <span class="dot" style="background:var(--red)"></span>
+          <span id="name1">Player 1</span>
+        </strong>
+        <small id="ready1">Waiting for player</small>
+      </div>
+      <div class="player">
+        <strong class="p2">
+          <span class="dot" style="background:var(--blue)"></span>
+          <span id="name2">Player 2</span>
+        </strong>
+        <small id="ready2">Waiting for player</small>
+      </div>
+    </div>
+
+    <p class="rules">
+      Click an unclaimed square to claim it. Claimed squares belong
+      to that player and cannot be taken by the other player.
+      Complete a row, column, or diagonal to win.
+    </p>
+  </section>
+
+  <section class="panel">
+    <div class="row"
+      style="justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h2 style="margin:0">Challenge board</h2>
+      <div class="pill" id="score">Red 0 · Blue 0</div>
+    </div>
+    <div class="board-wrap">
+      <div class="board" id="board"></div>
+    </div>
+  </section>
+</section>
+
+<div class="footer">
+  Firebase must be configured below before online multiplayer works.
+  This prototype uses anonymous sign-in and client-side game logic.
+  Use a private room code with your friend.
+</div>
+
 </main>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
 <script>
-
-
 const firebaseConfig = {
-  apiKey: "AIzaSyDXnyQK64stCrxOfV9wJq84PTkLgkBjQnY",
+  apiKey: "AIzaSyDXnyQK64stCrxOfV9wJq84PTkLgkBjQY",
   authDomain: "spire-lockout-bingo.firebaseapp.com",
   databaseURL: "https://spire-lockout-bingo-default-rtdb.firebaseio.com",
   projectId: "spire-lockout-bingo",
@@ -27,21 +422,42 @@ const firebaseConfig = {
 };
 
 const CHALLENGES = [
-  "Deal 4 types of damage","Gain 30 Block in one turn","Defeat the Act 2 boss",
-  "Deal 50 damage with one card","Win a fight without losing HP",
-  "Spend 400 gold in one shop","Defeat an Elite","Play 3 cards in one turn",
-  "Apply Vulnerable and Weak in one fight","Finish a fight with 1 HP",
-  "Obtain a rare card","Upgrade 3 cards","Win a fight without playing an Attack",
-  "Have 100 or more gold after a shop","Use a potion in a boss fight",
-  "Play 10 cards in one turn","Deal 100 damage in one turn","Gain 50 Block in one turn",
-  "Defeat an enemy with a Power","Remove a card at a shop",
-  "Win a fight with no Block gained","Have 3 or more Powers active",
-  "Use 2 potions in one combat","Defeat an Elite without using a potion",
+  "Deal 4 types of damage",
+  "Gain 30 Block in one turn",
+  "Defeat the Act 2 boss",
+  "Deal 50 damage with one card",
+  "Win a fight without losing HP",
+  "Spend 400 gold in one shop",
+  "Defeat an Elite",
+  "Play 3 cards in one turn",
+  "Apply Vulnerable and Weak in one fight",
+  "Finish a fight with 1 HP",
+  "Obtain a rare card",
+  "Upgrade 3 cards",
+  "Win a fight without playing an Attack",
+  "Have 100 or more gold after a shop",
+  "Use a potion in a boss fight",
+  "Play 10 cards in one turn",
+  "Deal 100 damage in one turn",
+  "Gain 50 Block in one turn",
+  "Defeat an enemy with a Power",
+  "Remove a card at a shop",
+  "Win a fight with no Block gained",
+  "Have 3 or more Powers active",
+  "Use 2 potions in one combat",
+  "Defeat an Elite without using a potion",
   "Reach the Act 2 boss"
 ];
 
 const $ = id => document.getElementById(id);
-let db, user, roomRef, roomCode, roomData, roomListener, mySlot, busy = false;
+
+let db, user, roomRef, roomCode, roomData;
+let roomListener, mySlot;
+let busy = false;
+
+// --------------------------------------------------
+// STATUS MESSAGES
+// --------------------------------------------------
 
 function setStatus(id, msg, type = "") {
   const el = $(id);
@@ -49,9 +465,94 @@ function setStatus(id, msg, type = "") {
   el.className = "status " + type;
 }
 
+// --------------------------------------------------
+// BOARD SIZE SETTINGS
+// --------------------------------------------------
+
+function getBoardDimensions() {
+  const selected = $("boardSize").value;
+
+  if (selected !== "custom") {
+    const size = Number(selected);
+    return { rows: size, cols: size };
+  }
+
+  return {
+    rows: Number($("customRows").value),
+    cols: Number($("customCols").value)
+  };
+}
+
+function updateCustomSettings() {
+  const custom = $("boardSize").value === "custom";
+  $("customSettings").classList.toggle("hidden", !custom);
+
+  if (custom) updateCustomCount();
+}
+
+function updateCustomCount() {
+  const rows = Number($("customRows").value);
+  const cols = Number($("customCols").value);
+  const count = rows * cols;
+
+  if (
+    !Number.isInteger(rows) ||
+    !Number.isInteger(cols) ||
+    rows < 2 || cols < 2 ||
+    rows > 25 || cols > 25
+  ) {
+    $("customCount").textContent =
+      "Enter between 2 and 25 rows and columns.";
+    $("customCount").className = "rules error";
+    return;
+  }
+
+  $("customCount").textContent =
+    `Your board will contain ${count} squares. ` +
+    (count > CHALLENGES.length
+      ? `You need ${count - CHALLENGES.length} more unique prompts.`
+      : `${CHALLENGES.length - count} prompts will not be used.`);
+
+  $("customCount").className =
+    count > CHALLENGES.length ? "rules error" : "rules success";
+}
+
+function validateBoardDimensions() {
+  const { rows, cols } = getBoardDimensions();
+
+  if (
+    !Number.isInteger(rows) ||
+    !Number.isInteger(cols) ||
+    rows < 2 || cols < 2 ||
+    rows > 25 || cols > 25
+  ) {
+    throw Error("Rows and columns must each be between 2 and 25.");
+  }
+
+  const total = rows * cols;
+
+  if (total > CHALLENGES.length) {
+    throw Error(
+      `This board needs ${total} unique prompts, but you only have ` +
+      `${CHALLENGES.length}. Add at least ` +
+      `${total - CHALLENGES.length} more challenges first.`
+    );
+  }
+
+  return { rows, cols };
+}
+
+$("boardSize").addEventListener("change", updateCustomSettings);
+$("customRows").addEventListener("input", updateCustomCount);
+$("customCols").addEventListener("input", updateCustomCount);
+
+// --------------------------------------------------
+// ROOM CREATION AND CONNECTION
+// --------------------------------------------------
+
 function randomCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({length: 6}, () =>
+  return Array.from({ length: 6 }, () =>
     chars[Math.floor(Math.random() * chars.length)]
   ).join("");
 }
@@ -60,17 +561,22 @@ function cleanName() {
   return $("playerName").value.trim().slice(0, 20) || "Player";
 }
 
-function shuffledChallenges() {
+function shuffledChallenges(count) {
   const a = [...CHALLENGES];
+
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
-  return a.map(text => ({text}));
+
+  return a.slice(0, count).map(text => ({ text }));
 }
 
 async function connectFirebase() {
-  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+
   const credential = await firebase.auth().signInAnonymously();
   user = credential.user;
   db = firebase.database();
@@ -78,24 +584,50 @@ async function connectFirebase() {
 
 async function createRoom() {
   if (busy) return;
+
+  let dimensions;
+
+  // Validate before creating anything in Firebase.
+  try {
+    dimensions = validateBoardDimensions();
+  } catch (e) {
+    setStatus("setupStatus", e.message, "error");
+    return;
+  }
+
   busy = true;
   $("createBtn").disabled = true;
 
   try {
     await connectFirebase();
+
     const code = randomCode();
     const ref = db.ref("rooms/" + code);
+    const total = dimensions.rows * dimensions.cols;
 
     await ref.set({
       creatorUid: user.uid,
       createdAt: firebase.database.ServerValue.TIMESTAMP,
-      players: {
-        "1": {uid: user.uid, name: cleanName(), slot: 1}
+
+      // Save the board dimensions so both players use identical rules.
+      settings: {
+        rows: dimensions.rows,
+        cols: dimensions.cols
       },
-      board: shuffledChallenges()
+
+      players: {
+        "1": {
+          uid: user.uid,
+          name: cleanName(),
+          slot: 1
+        }
+      },
+
+      board: shuffledChallenges(total)
     });
 
     enterRoom(code, 1);
+
   } catch (e) {
     setStatus("setupStatus", "Couldn't create room: " + e.message, "error");
   } finally {
@@ -106,17 +638,28 @@ async function createRoom() {
 
 async function joinRoom() {
   if (busy) return;
+
   busy = true;
   $("joinBtn").disabled = true;
 
   try {
     await connectFirebase();
+
     const code = $("roomInput").value.trim().toUpperCase();
+
     if (!/^[A-Z0-9]{6}$/.test(code)) {
       throw Error("Enter the six-character room code.");
     }
 
     const ref = db.ref("rooms/" + code);
+
+    // Confirm that the room exists before trying to join.
+    const roomSnapshot = await ref.get();
+
+    if (!roomSnapshot.exists()) {
+      throw Error("That room doesn't exist. Check the room code.");
+    }
+
     const slot2 = ref.child("players/2");
     const existing = await slot2.get();
 
@@ -125,19 +668,26 @@ async function joinRoom() {
         enterRoom(code, 2);
         return;
       }
+
       throw Error("This room already has two players.");
     }
 
     const result = await slot2.transaction(current => {
       if (current !== null) return;
-      return {uid: user.uid, name: cleanName(), slot: 2};
+
+      return {
+        uid: user.uid,
+        name: cleanName(),
+        slot: 2
+      };
     }, undefined, false);
 
     if (!result.committed || result.snapshot.val()?.uid !== user.uid) {
-      throw Error("Couldn't join. Check the room code or try another room.");
+      throw Error("Couldn't join. Try again.");
     }
 
     enterRoom(code, 2);
+
   } catch (e) {
     setStatus("setupStatus", "Couldn't join room: " + e.message, "error");
   } finally {
@@ -147,11 +697,14 @@ async function joinRoom() {
 }
 
 function enterRoom(code, slot) {
-  if (roomListener && roomRef) roomRef.off("value", roomListener);
+  if (roomListener && roomRef) {
+    roomRef.off("value", roomListener);
+  }
 
   roomCode = code;
   mySlot = slot;
   roomRef = db.ref("rooms/" + code);
+
   $("setup").classList.add("hidden");
   $("game").classList.remove("hidden");
   $("roomCode").textContent = code;
@@ -161,15 +714,20 @@ function enterRoom(code, slot) {
       setStatus("gameStatus", "This room no longer exists.", "error");
       return;
     }
+
     roomData = snap.val();
     $("connection").textContent = "Live · Room " + code;
     render();
   };
 
-  roomRef.on("value", roomListener, e =>
-    setStatus("gameStatus", "Database error: " + e.message, "error")
-  );
+  roomRef.on("value", roomListener, e => {
+    setStatus("gameStatus", "Database error: " + e.message, "error");
+  });
 }
+
+// --------------------------------------------------
+// PLAYERS AND WINNING LINES
+// --------------------------------------------------
 
 function getPlayers() {
   return Object.values(roomData?.players || {})
@@ -177,22 +735,63 @@ function getPlayers() {
     .sort((a, b) => a.slot - b.slot);
 }
 
+function getDimensions() {
+  const board = roomData?.board || [];
+  const settings = roomData?.settings;
+
+  // Fallback supports older rooms that were created with a 5x5 board.
+  const rows = Number(settings?.rows) || 5;
+  const cols = Number(settings?.cols) || 5;
+
+  return { rows, cols, total: board.length };
+}
+
 function winningLine(board, slot) {
+  const { rows, cols } = getDimensions();
   const lines = [];
-  for (let r = 0; r < 5; r++) lines.push([0,1,2,3,4].map(c => r * 5 + c));
-  for (let c = 0; c < 5; c++) lines.push([0,1,2,3,4].map(r => r * 5 + c));
-  lines.push([0,6,12,18,24], [4,8,12,16,20]);
-  return lines.find(line => line.every(i => board[i]?.owner === slot)) || null;
+
+  // Every row.
+  for (let r = 0; r < rows; r++) {
+    lines.push(
+      Array.from({ length: cols }, (_, c) => r * cols + c)
+    );
+  }
+
+  // Every column.
+  for (let c = 0; c < cols; c++) {
+    lines.push(
+      Array.from({ length: rows }, (_, r) => r * cols + c)
+    );
+  }
+
+  // Diagonals apply to square boards only.
+  if (rows === cols) {
+    lines.push(
+      Array.from({ length: rows }, (_, i) => i * cols + i),
+      Array.from({ length: rows }, (_, i) => i * cols + (cols - 1 - i))
+    );
+  }
+
+  return lines.find(line =>
+    line.every(i => board[i]?.owner === slot)
+  ) || null;
 }
 
 function getWinner() {
   const board = roomData?.board || [];
+
   for (const slot of [1, 2]) {
     const line = winningLine(board, slot);
-    if (line) return {slot, line};
+
+    if (line) return { slot, line };
   }
+
   return null;
 }
+
+// --------------------------------------------------
+// DISPLAY THE BOARD
+// --------------------------------------------------
 
 function render() {
   const players = getPlayers();
@@ -200,26 +799,48 @@ function render() {
   const p2 = players.find(p => p.slot === 2);
   const board = roomData.board || [];
   const winner = getWinner();
+  const { rows, cols } = getDimensions();
 
   $("name1").textContent = p1?.name || "Player 1";
   $("name2").textContent = p2?.name || "Player 2";
-  $("ready1").textContent = p1 ? (p1.uid === user.uid ? "You" : "Connected") : "Waiting for player";
-  $("ready2").textContent = p2 ? (p2.uid === user.uid ? "You" : "Connected") : "Waiting for player";
+
+  $("ready1").textContent = p1
+    ? (p1.uid === user.uid ? "You" : "Connected")
+    : "Waiting for player";
+
+  $("ready2").textContent = p2
+    ? (p2.uid === user.uid ? "You" : "Connected")
+    : "Waiting for player";
+
+  $("boardDescription").textContent =
+    `${rows} × ${cols} grid · ${board.length} challenges`;
 
   let red = 0, blue = 0;
-  board.forEach(s => {
-    if (s.owner === 1) red++;
-    if (s.owner === 2) blue++;
+
+  board.forEach(sq => {
+    if (sq.owner === 1) red++;
+    if (sq.owner === 2) blue++;
   });
+
   $("score").textContent = `Red ${red} · Blue ${blue}`;
 
   const el = $("board");
   el.innerHTML = "";
 
+  // Adjust the number of columns to match the chosen grid.
+  el.style.gridTemplateColumns =
+    `repeat(${cols}, minmax(0, 1fr))`;
+
+  // Keep wider boards usable by allowing horizontal scrolling.
+  el.style.minWidth = cols > 5 ? `${cols * 108}px` : "0";
+
   board.forEach((sq, i) => {
     const btn = document.createElement("button");
+
     btn.className = "square " +
-      (sq.owner === 1 ? "mine1 taken" : sq.owner === 2 ? "mine2 taken" : "free");
+      (sq.owner === 1 ? "mine1 taken" :
+       sq.owner === 2 ? "mine2 taken" : "free");
+
     btn.disabled = !!sq.owner || !!winner || players.length < 2;
 
     const n = document.createElement("span");
@@ -241,32 +862,60 @@ function render() {
   });
 
   if (winner) {
-    const name = winner.slot === 1 ? (p1?.name || "Player 1") : (p2?.name || "Player 2");
-    setStatus("gameStatus",
+    const name = winner.slot === 1
+      ? (p1?.name || "Player 1")
+      : (p2?.name || "Player 2");
+
+    setStatus(
+      "gameStatus",
       `${name} wins with line ${winner.line.map(n => n + 1).join(", ")}!`,
       "success"
     );
   } else if (players.length < 2) {
-    setStatus("gameStatus", "Waiting for your friend to join. Share the room code above.");
+    setStatus(
+      "gameStatus",
+      "Waiting for your friend to join. Share the room code above."
+    );
   } else {
-    setStatus("gameStatus",
-      `You're Player ${mySlot} (${mySlot === 1 ? "red" : "blue"}). First to complete a line wins.`
+    setStatus(
+      "gameStatus",
+      `You're Player ${mySlot} (${mySlot === 1 ? "red" : "blue"}). ` +
+      "First to complete a line wins."
     );
   }
 }
 
+// --------------------------------------------------
+// CLAIM A SQUARE
+// --------------------------------------------------
+
 async function claimSquare(i) {
-  if (!roomRef || !roomData || getWinner() || busy || getPlayers().length < 2) return;
+  if (
+    !roomRef ||
+    !roomData ||
+    getWinner() ||
+    busy ||
+    getPlayers().length < 2
+  ) return;
 
   busy = true;
+
   try {
     const result = await roomRef.child("board/" + i).transaction(current => {
       if (!current || current.owner != null) return;
-      return {...current, owner: mySlot, claimedBy: user.uid};
+
+      return {
+        ...current,
+        owner: mySlot,
+        claimedBy: user.uid
+      };
     }, undefined, false);
 
     if (!result.committed) {
-      setStatus("gameStatus", "That square was already claimed. Choose another.");
+      setStatus(
+        "gameStatus",
+        "That square was already claimed. Choose another."
+      );
     }
   } catch (e) {
     setStatus("gameStatus", "Couldn't claim square: " + e.message, "error");
@@ -275,14 +924,24 @@ async function claimSquare(i) {
   }
 }
 
+// --------------------------------------------------
+// BUTTON EVENTS
+// --------------------------------------------------
+
 $("createBtn").addEventListener("click", createRoom);
 $("joinBtn").addEventListener("click", joinRoom);
+
 $("roomInput").addEventListener("input", e => {
-  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+  e.target.value = e.target.value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 6);
 });
 
 $("copyBtn").addEventListener("click", async () => {
-  const invite = `Join my Spire Lockout Bingo match! Room code: ${roomCode}`;
+  const invite =
+    `Join my Spire Lockout Bingo match! Room code: ${roomCode}`;
+
   try {
     await navigator.clipboard.writeText(invite);
     setStatus("gameStatus", "Invite details copied.", "success");
@@ -292,13 +951,24 @@ $("copyBtn").addEventListener("click", async () => {
 });
 
 $("leaveBtn").addEventListener("click", () => {
-  if (roomListener && roomRef) roomRef.off("value", roomListener);
-  roomRef = roomListener = roomCode = roomData = mySlot = null;
+  if (roomListener && roomRef) {
+    roomRef.off("value", roomListener);
+  }
+
+  roomRef = null;
+  roomListener = null;
+  roomCode = null;
+  roomData = null;
+  mySlot = null;
+
   $("game").classList.add("hidden");
   $("setup").classList.remove("hidden");
   $("connection").textContent = "Not connected";
+
   setStatus("setupStatus", "You left the room.");
 });
+
+updateCustomSettings();
 </script>
 </body>
 </html>
