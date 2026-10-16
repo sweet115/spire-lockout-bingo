@@ -65,7 +65,57 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
 const firebaseConfig={apiKey:"AIzaSyDXnyQK64stCrxOfV9wJq84PTkLgkBjQnY",authDomain:"spire-lockout-bingo.firebaseapp.com",databaseURL:"https://spire-lockout-bingo-default-rtdb.firebaseio.com",projectId:"spire-lockout-bingo",appId:"1:774789225766:web:b49660ec4998f28c0bf5e7"};
-const CHALLENGES=["Deal 4 types of damage","Gain 30 Block in one turn","Defeat the Act 2 boss","Deal 50 damage with one card","Win a fight without losing HP","Spend 400 gold in one shop","Defeat an Elite","Play 3 cards in one turn","Apply Vulnerable and Weak in one fight","Finish a fight with 1 HP","Obtain a rare card","Upgrade 3 cards","Win a fight without playing an Attack","Have 100 or more gold after a shop","Use a potion in a boss fight","Play 10 cards in one turn","Deal 100 damage in one turn","Gain 50 Block in one turn","Defeat an enemy with a Power","Remove a card at a shop","Win a fight with no Block gained","Have 3 or more Powers active","Use 2 potions in one combat","Defeat an Elite without using a potion","Reach the Act 2 boss"];
+const CHALLENGES = [
+  "Deal 4 Types of Damage",
+  "30 Block in 1 Turn",
+  "Defeat Act 2 Boss",
+  "Deal 50 Damage with 1 Card",
+  "Complete a Combat Without Losing HP",
+  "Spend 400 Gold in 1 Shop",
+  "Play 10 Cards in 1 Turn",
+  "Kill 2 Enemies at the Same Time",
+  "Exhaust 7 Cards in 1 Combat",
+  "Have 3 Active Buffs at the Same Time",
+  "Play 4 Powers in 1 Combat",
+  "End a Turn With No Cards in Hand and No Energy",
+  "Give an Enemy 10+ Stacks of One Debuff",
+  "Have 3 Curses in Deck",
+  "Have 5+ Energy in 1 Turn",
+  "Create 5 Cards in a Combat",
+  "Skip 5 Card Rewards in Act 1",
+  "Make an Enemy Stronger for 1 Turn",
+  "Kill an Enemy With a Potion",
+  "Take Damage Outside Combat",
+  "Use 3 Potions on One Enemy",
+  "Beat Act 1 With Less Than 12 Cards",
+  "Remove All Strikes",
+  "Have 3 of the Same Card in Hand on a Turn, Excluding Strikes or Defends",
+  "Beat the Act 1 Boss Without Using Physical Damage",
+  "Beat Act 1 in Less Than 12 Minutes",
+  "Kill an Elite Without Taking Damage",
+  "Kill an Enemy on Turn 1",
+  "Deal at Least 100 Damage in a Single Attack",
+  "Win a Combat Without Playing an Attack Card",
+  "Play a Maximum of 3 Energy for the Combat and Win",
+  "Beat Act 1 Without Collecting Any Relics",
+  "Have 500 Gold in Your Inventory",
+  "Fill 3 Potion Slots",
+  "Have Less Than 5 Gold",
+  "Use 5 Potions Before Act 2",
+  "Draw All Upgraded Cards",
+  "Beat Act 1 Without Resting at Campsites",
+  "Visit 5 ? Rooms in a Run",
+  "Exhaust 6 Slime Cards",
+  "Beat Act 1 Without Upgrading or Taking Any Upgraded Cards",
+  "End an Elite Fight With Less Than 10 HP",
+  "Play Your Entire Hand",
+  "Reach the Act 1 Boss in Less Than 6 Minutes",
+  "Have More Than 50 Block at Any Given Time",
+  "Have 6 or More Thorns",
+  "Apply 3 Debuffs in a Turn; Enemy Must Have No Debuffs Prior",
+  "Have 5 Orb Slots Filled",
+  "Have More Than 35 Cards in Your Deck"
+];
 const COLORS=[{name:"Crimson",hex:"#e45b65"},{name:"Azure",hex:"#5ba9f2"},{name:"Emerald",hex:"#62c98c"},{name:"Violet",hex:"#b58af2"},{name:"Amber",hex:"#f0b44d"},{name:"Pink",hex:"#f078c4"},{name:"Cyan",hex:"#52d4d4"},{name:"Ivory",hex:"#f0eee8"}];
 const MAX_PLAYERS=8;const $=id=>document.getElementById(id);let db,user,roomRef,roomCode,roomData,roomListener,mySlot,busy=false;let customChallenges=[];let celebrationDismissed=false;
 function setStatus(id,msg,type=""){const el=$(id);el.textContent=msg;el.className="status "+type;}
